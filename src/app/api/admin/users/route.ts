@@ -84,9 +84,10 @@ export async function POST(req: NextRequest) {
 
   // Send invite email if requested
   let emailSent = false
+  let emailError = ''
   if (data.sendInvite) {
     const loginUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/admin-login`
-    emailSent = await sendEmail({
+    const result = await sendEmail({
       to:       data.email,
       subject:  `You've been invited to the Hola Prime Admin Panel`,
       html:     templateAdminInvite({
@@ -99,7 +100,9 @@ export async function POST(req: NextRequest) {
       }),
       template: 'admin_invite',
     })
+    emailSent  = result.sent
+    emailError = result.error || ''
   }
 
-  return NextResponse.json({ user: newUser, emailSent })
+  return NextResponse.json({ user: newUser, emailSent, emailError })
 }

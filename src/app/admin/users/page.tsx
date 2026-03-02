@@ -124,7 +124,7 @@ export default function AdminUsersPage() {
     const d = await res.json()
     if (res.ok) {
       setUsers(prev => [...prev, d.user])
-      setInvMsg(d.emailSent ? '✓ Admin created and invite email sent' : '✓ Admin created (email not sent — check SMTP config)')
+      setInvMsg(d.emailSent ? '✓ Admin created and invite email sent' : `✓ Admin created (email not sent: ${d.emailError || 'Check Admin → Email → SMTP Config'})`)
       setTimeout(() => { setInvMsg(''); setShowInvite(false); setInv({ firstName:'', lastName:'', email:'', phone:'', department:'', password:'', role:'ADMIN', notes:'', sendInvite:true }) }, 2000)
     } else { setInvMsg(`✕ ${d.error}`) }
     setInvSaving(false)
