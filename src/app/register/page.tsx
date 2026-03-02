@@ -3,9 +3,9 @@ export const dynamic = 'force-dynamic'
 // src/app/register/page.tsx
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
-import dynamic from 'next/dynamic'
+import nextDynamic from 'next/dynamic'
 
-const KycOnboardingModal = dynamic(
+const KycOnboardingModal = nextDynamic(
   () => import('@/components/kyc/KycOnboardingModal'),
   { ssr: false }
 )

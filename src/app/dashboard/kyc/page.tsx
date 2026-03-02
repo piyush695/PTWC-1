@@ -2,9 +2,9 @@
 export const dynamic = 'force-dynamic'
 import { useState, useEffect } from 'react'
 import DashboardLayout from '@/components/dashboard/DashboardLayout'
-import dynamic from 'next/dynamic'
+import nextDynamic from 'next/dynamic'
 
-const SumsubWidget = dynamic(() => import('@/components/kyc/SumsubWidget'), { ssr: false })
+const SumsubWidget = nextDynamic(() => import('@/components/kyc/SumsubWidget'), { ssr: false })
 
 const KYC_STATUS_CFG: Record<string,{label:string;color:string;bg:string;border:string;icon:string}> = {
   NOT_STARTED:            {label:'Not Started',          color:'var(--gray3)', bg:'rgba(74,85,128,0.15)', border:'var(--border2)',             icon:'○'},
