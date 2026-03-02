@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic'
 //   4. SMTP Config — nodemailer / self-hosted MTA settings
 //   5. MTA Providers — Mailgun, SendGrid, SES, Postmark one-click connect
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import AdminLayout from '@/components/admin/AdminLayout'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
