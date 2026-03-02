@@ -646,6 +646,10 @@ export default function RegisterPage() {
           )}
           {step < STEPS.length - 1 ? (
             <button onClick={next} className="btn-neon" style={{ flex:2 }}>Continue →</button>
+          ) : !feeEnabled ? (
+            <button onClick={submit} disabled={loading} className="btn-gold" style={{ flex:1, opacity:loading?0.6:1 }}>
+              {loading ? 'Creating Account…' : '🏆 Complete Registration →'}
+            </button>
           ) : isPayStep && paymentDone ? (
             <button onClick={submit} disabled={loading} className="btn-gold" style={{ flex:1, opacity:loading?0.6:1 }}>
               {loading ? 'Creating Account…' : '🏆 Complete Registration →'}
