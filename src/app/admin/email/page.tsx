@@ -198,7 +198,27 @@ export default function EmailCampaignsPage() {
     }).catch(()=>{})
     // Fetch SMTP config
     fetch('/api/admin/email/config', { credentials:'include' }).then(r=>r.json()).then(d=>{
-      if(d.smtp) setSmtp(d.smtp)
+      if(d.config) {
+        const cfg = d.config
+        // Map DB field names to form state field names
+        setSmtp({
+          host:      cfg.host      || '',
+          port:      cfg.port      || '587',
+          secure:    cfg.secure    || false,
+          user:      cfg.username  || '',
+          password:  cfg.password  || '',
+          fromName:  cfg.fromName  || '',
+          fromEmail: cfg.fromEmail || '',
+        })
+        // Restore connected MTA provider
+        if (cfg.provider && cfg.provider !== 'smtp') {
+          setConnectedMta(cfg.provider)
+          // Restore credentials to MTA forms (password shown as placeholder)
+          if (cfg.credentials) {
+            setMtaForms(prev => ({ ...prev, [cfg.provider]: cfg.credentials }))
+          }
+        }
+      }
     }).catch(()=>{})
     // Fetch segment counts (real trader counts from DB)
     fetch('/api/admin/stats', { credentials:'include' }).then(r=>r.json()).then(d=>{
