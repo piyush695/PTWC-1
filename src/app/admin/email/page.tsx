@@ -188,20 +188,20 @@ export default function EmailCampaignsPage() {
   // Load real data
   useEffect(() => {
     // Fetch email logs
-    fetch('/api/admin/email/logs?limit=20').then(r=>r.json()).then(d=>{
+    fetch('/api/admin/email/logs?limit=20', { credentials:'include' }).then(r=>r.json()).then(d=>{
       setLogs(d.logs||[])
       setLogsLoading(false)
     }).catch(()=>setLogsLoading(false))
     // Fetch templates
-    fetch('/api/admin/email/templates').then(r=>r.json()).then(d=>{
+    fetch('/api/admin/email/templates', { credentials:'include' }).then(r=>r.json()).then(d=>{
       if(d.templates?.length>0) setTemplates(d.templates)
     }).catch(()=>{})
     // Fetch SMTP config
-    fetch('/api/admin/email/config').then(r=>r.json()).then(d=>{
+    fetch('/api/admin/email/config', { credentials:'include' }).then(r=>r.json()).then(d=>{
       if(d.smtp) setSmtp(d.smtp)
     }).catch(()=>{})
     // Fetch segment counts (real trader counts from DB)
-    fetch('/api/admin/stats').then(r=>r.json()).then(d=>{
+    fetch('/api/admin/stats', { credentials:'include' }).then(r=>r.json()).then(d=>{
       if(d.stats) {
         // Update segment counts with real data
       }
@@ -221,7 +221,7 @@ export default function EmailCampaignsPage() {
     if (!subject.trim() || !body.trim()) { setSendMsg('⚠ Subject and body are required'); return }
     setSending(true)
     const r = await fetch('/api/admin/email/bulk', {
-      method:'POST', headers:{'Content-Type':'application/json'},
+      method:'POST', headers:{'Content-Type':'application/json'}, credentials:'include',
       body: JSON.stringify({ subject, body, fromName, fromEmail, segment, template: useTemplate||undefined })
     }).then(r=>r.json()).catch(()=>({}))
     setSendMsg(r.queued ? `✓ Campaign queued for ${r.queued} recipients` : '✕ Error: ' + (r.error||'Failed'))
@@ -233,7 +233,7 @@ export default function EmailCampaignsPage() {
     if (!testEmail.includes('@')) { setTestMsg('Enter a valid email'); return }
     setTestSending(true)
     const r = await fetch('/api/admin/email/test', {
-      method:'POST', headers:{'Content-Type':'application/json'},
+      method:'POST', headers:{'Content-Type':'application/json'}, credentials:'include',
       body: JSON.stringify({ to: testEmail, subject, body, fromName, fromEmail })
     }).then(r=>r.json()).catch(()=>({}))
     setTestMsg(r.success ? `✓ Test email sent to ${testEmail}` : '✕ Error: ' + (r.error||'Failed'))
@@ -245,7 +245,7 @@ export default function EmailCampaignsPage() {
     if (!smtp.host) { setSmtpMsg('✕ Host is required'); return }
     setSmtpTesting(true)
     const r = await fetch('/api/admin/email/test-smtp', {
-      method:'POST', headers:{'Content-Type':'application/json'},
+      method:'POST', headers:{'Content-Type':'application/json'}, credentials:'include',
       body: JSON.stringify({ smtp })
     }).then(r=>r.json()).catch(()=>({}))
     setSmtpMsg(r.success ? '✓ Connection successful — SMTP is working' : '✕ ' + (r.error||'Connection failed'))
@@ -255,7 +255,7 @@ export default function EmailCampaignsPage() {
   const handleSmtpSave = async () => {
     setSmtpSaving(true)
     const r = await fetch('/api/admin/email/config', {
-      method:'POST', headers:{'Content-Type':'application/json'},
+      method:'POST', headers:{'Content-Type':'application/json'}, credentials:'include',
       body: JSON.stringify({ smtp })
     }).then(r=>r.json()).catch(()=>({}))
     setSmtpMsg(r.success ? '✓ SMTP settings saved' : '✕ Error: ' + (r.error||'Failed'))
@@ -266,7 +266,7 @@ export default function EmailCampaignsPage() {
   const handleMtaSave = async (providerId: string) => {
     setMtaSaving(providerId)
     const r = await fetch('/api/admin/email/config', {
-      method:'POST', headers:{'Content-Type':'application/json'},
+      method:'POST', headers:{'Content-Type':'application/json'}, credentials:'include',
       body: JSON.stringify({ provider: providerId, credentials: mtaForms[providerId]||{} })
     }).then(r=>r.json()).catch(()=>({}))
     if (r.success) setConnectedMta(providerId)
@@ -613,7 +613,7 @@ export default function EmailCampaignsPage() {
 
             <div style={{ fontFamily:'var(--font-display)', fontWeight:800, fontSize:14, color:'var(--white)', marginBottom:6 }}>SMTP Configuration</div>
             <div style={{ fontSize:13, color:'var(--gray3)', marginBottom:24, lineHeight:1.6 }}>
-              Connect any SMTP server — your own mail server, G Suite, Office 365, or a relay service. These settings are saved to your <code style={{ background:'rgba(0,212,255,0.1)', padding:'1px 5px', borderRadius:3, fontSize:11 }}>.env.local</code> file.
+              Connect any SMTP server — your own mail server, G Suite, Office 365, or a relay service. These settings are saved to your database and take effect immediately.
             </div>
 
             <div style={{ display:'flex', flexDirection:'column', gap:18 }}>
@@ -717,7 +717,7 @@ export default function EmailCampaignsPage() {
           <div style={{ background:'rgba(0,212,255,0.05)', border:'1px solid rgba(0,212,255,0.2)', borderRadius:11, padding:'16px 20px', display:'flex', alignItems:'center', gap:14 }}>
             <span style={{ fontSize:22 }}>🔌</span>
             <div style={{ fontSize:13, color:'rgba(180,200,235,0.8)', lineHeight:1.6 }}>
-              <strong style={{ color:'var(--neon)' }}>MTA (Mail Transfer Agent) providers</strong> handle deliverability, bounce processing, and analytics so you don't have to manage a mail server. Connect one below — your API credentials are saved to <code style={{ background:'rgba(0,212,255,0.1)', padding:'1px 5px', borderRadius:3, fontSize:11 }}>.env.local</code> and used automatically when sending.
+              <strong style={{ color:'var(--neon)' }}>MTA (Mail Transfer Agent) providers</strong> handle deliverability, bounce processing, and analytics so you don't have to manage a mail server. Connect one below — your API credentials are saved to the database and used automatically when sending all emails.
             </div>
           </div>
 
