@@ -28,7 +28,7 @@ export default function TradersPage() {
       fetch(`/api/leaderboard?${params}`).then(r => r.json()).catch(() => ({})),
       fetch('/api/admin/stats').then(r => r.json()).catch(() => ({})),
     ])
-    setTraders(lbRes.entries || [])
+    setTraders(lbRes.leaderboard || [])
     setTotal(lbRes.total || 0)
     if (statsRes.traders) setStats(statsRes)
     setLoading(false)
