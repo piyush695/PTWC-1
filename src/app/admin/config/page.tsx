@@ -28,6 +28,46 @@ export default function AdminConfigPage() {
   const [saved, setSaved] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+
+  // Country eligibility
+  const [countries, setCountries]         = useState<any[]>([])
+  const [countrySearch, setCountrySearch] = useState('')
+  const [countryFilter, setCountryFilter] = useState<'all'|'enabled'|'disabled'>('all')
+  const [togglingCode, setTogglingCode]   = useState<string|null>(null)
+  const [countryMsg, setCountryMsg]       = useState('')
+
+  useEffect(() => {
+    fetch('/api/admin/countries', { credentials:'include' })
+      .then(r=>r.json()).then(d=>{ if(d.countries) setCountries(d.countries) }).catch(()=>{})
+  }, [])
+
+  const toggleCountry = async (code: string, current: boolean) => {
+    setTogglingCode(code)
+    const r = await fetch('/api/admin/countries', {
+      method:'PATCH', credentials:'include',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ code, isEligible: !current }),
+    }).then(r=>r.json()).catch(()=>({}))
+    if (r.country) setCountries(prev => prev.map(c => c.code === code ? {...c, isEligible: !current} : c))
+    setTogglingCode(null)
+  }
+
+  const bulkToggle = async (enableAll: boolean) => {
+    await fetch('/api/admin/countries', {
+      method:'PATCH', credentials:'include',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(enableAll ? { enableAll: true } : { disableAll: true }),
+    })
+    setCountries(prev => prev.map(c => ({...c, isEligible: enableAll})))
+    setCountryMsg(enableAll ? '✓ All countries enabled' : '✓ All countries disabled')
+    setTimeout(() => setCountryMsg(''), 2500)
+  }
+
+  const filteredCountries = countries.filter(c => {
+    const matchSearch = c.name.toLowerCase().includes(countrySearch.toLowerCase()) || c.code.toLowerCase().includes(countrySearch.toLowerCase())
+    const matchFilter = countryFilter === 'all' || (countryFilter === 'enabled' ? c.isEligible : !c.isEligible)
+    return matchSearch && matchFilter
+  })
   const f = (k: string, v: string | boolean) => setConfig(p => ({...p,[k]:v}))
 
   // ── Prize tiers state ─────────────────────────────────────────────────
@@ -81,8 +121,8 @@ export default function AdminConfigPage() {
   }
 
   // Load current config from DB on mount
-  useState(() => {
-    fetch('/api/config').then(r=>r.json()).then(d => {
+  useEffect(() => {
+    fetch('/api/config', { credentials:'include' }).then(r=>r.json()).then(d => {
       if (d.config) {
         const raw = d.config
         setConfig({
@@ -105,13 +145,13 @@ export default function AdminConfigPage() {
         })
       }
     }).catch(()=>{})
-  })
+  }, [])
 
   const handleSave = async () => {
     setSaving(true)
     setError('')
     try {
-      const res = await fetch('/api/admin/config', {
+      const res = await fetch('/api/admin/config', { credentials:'include',
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -312,6 +352,100 @@ export default function AdminConfigPage() {
               ))}
             </div>
           </Field>
+        </Section>
+
+
+        {/* ── Country Eligibility ─────────────────────────────────────── */}
+        <Section title="Country Eligibility" icon="🌍">
+          <div style={{ marginBottom:16, display:'flex', gap:10, flexWrap:'wrap', alignItems:'center' }}>
+            {/* Search */}
+            <input
+              value={countrySearch} onChange={e=>setCountrySearch(e.target.value)}
+              placeholder="Search country…"
+              style={{ flex:1, minWidth:160, padding:'9px 14px', borderRadius:8, border:'1px solid var(--border2)', background:'var(--surface2)', color:'var(--white)', fontFamily:'var(--font-display)', fontSize:13 }}
+            />
+            {/* Filter tabs */}
+            {(['all','enabled','disabled'] as const).map(f => (
+              <button key={f} onClick={()=>setCountryFilter(f)}
+                style={{ padding:'8px 14px', borderRadius:8, border:`1px solid ${countryFilter===f?'var(--neon)':'var(--border2)'}`, background:countryFilter===f?'rgba(0,212,255,0.1)':'transparent', color:countryFilter===f?'var(--neon)':'var(--gray3)', fontFamily:'var(--font-display)', fontWeight:700, fontSize:11, letterSpacing:'0.08em', textTransform:'uppercase', cursor:'pointer' }}>
+                {f}
+              </button>
+            ))}
+            {/* Bulk actions */}
+            <button onClick={()=>bulkToggle(true)}
+              style={{ padding:'8px 14px', borderRadius:8, border:'1px solid rgba(0,230,118,0.3)', background:'rgba(0,230,118,0.06)', color:'var(--green)', fontFamily:'var(--font-display)', fontWeight:700, fontSize:11, letterSpacing:'0.08em', textTransform:'uppercase', cursor:'pointer' }}>
+              ✓ Enable All
+            </button>
+            <button onClick={()=>bulkToggle(false)}
+              style={{ padding:'8px 14px', borderRadius:8, border:'1px solid rgba(255,56,96,0.3)', background:'rgba(255,56,96,0.06)', color:'var(--red)', fontFamily:'var(--font-display)', fontWeight:700, fontSize:11, letterSpacing:'0.08em', textTransform:'uppercase', cursor:'pointer' }}>
+              ✕ Disable All
+            </button>
+          </div>
+
+          {/* Stats bar */}
+          <div style={{ display:'flex', gap:16, marginBottom:16, flexWrap:'wrap' }}>
+            {[
+              { label:'Total', value: countries.length, color:'var(--gray2)' },
+              { label:'Eligible', value: countries.filter(c=>c.isEligible).length, color:'var(--green)' },
+              { label:'Blocked', value: countries.filter(c=>!c.isEligible).length, color:'var(--red)' },
+            ].map(s => (
+              <div key={s.label} style={{ background:'var(--surface2)', border:'1px solid var(--border2)', borderRadius:8, padding:'10px 18px', display:'flex', gap:8, alignItems:'center' }}>
+                <span style={{ fontFamily:'var(--font-mono)', fontWeight:700, fontSize:18, color:s.color }}>{s.value}</span>
+                <span style={{ fontFamily:'var(--font-display)', fontSize:11, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--gray3)' }}>{s.label}</span>
+              </div>
+            ))}
+            {countryMsg && <div style={{ padding:'10px 16px', borderRadius:8, background:'rgba(0,230,118,0.08)', border:'1px solid rgba(0,230,118,0.2)', color:'var(--green)', fontFamily:'var(--font-display)', fontWeight:700, fontSize:12 }}>{countryMsg}</div>}
+          </div>
+
+          {/* Country grid */}
+          {countries.length === 0 ? (
+            <div style={{ color:'var(--gray3)', fontFamily:'var(--font-display)', fontSize:13, padding:'20px 0' }}>Loading countries…</div>
+          ) : (
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(200px,1fr))', gap:8 }}>
+              {filteredCountries.map(c => {
+                const loading = togglingCode === c.code
+                return (
+                  <div key={c.code}
+                    onClick={() => !loading && toggleCountry(c.code, c.isEligible)}
+                    style={{
+                      display:'flex', alignItems:'center', gap:10,
+                      padding:'10px 14px', borderRadius:9, cursor:loading?'wait':'pointer',
+                      border:`1px solid ${c.isEligible ? 'rgba(0,230,118,0.25)' : 'rgba(255,56,96,0.2)'}`,
+                      background: c.isEligible ? 'rgba(0,230,118,0.05)' : 'rgba(255,56,96,0.04)',
+                      transition:'all 0.15s', opacity: loading ? 0.6 : 1,
+                    }}>
+                    {/* Flag */}
+                    <img
+                      src={`https://flagcdn.com/w40/${c.code.toLowerCase()}.png`}
+                      alt={c.code}
+                      style={{ width:28, height:20, objectFit:'cover', borderRadius:2, flexShrink:0 }}
+                      onError={e => { (e.target as HTMLImageElement).style.display='none' }}
+                    />
+                    <div style={{ flex:1, minWidth:0 }}>
+                      <div style={{ fontFamily:'var(--font-display)', fontWeight:700, fontSize:12, color:'var(--white)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{c.name}</div>
+                      <div style={{ fontFamily:'var(--font-mono)', fontSize:10, color:'var(--gray3)' }}>{c.code} · {c.region || '—'}</div>
+                    </div>
+                    {/* Toggle pill */}
+                    <div style={{
+                      width:36, height:20, borderRadius:10, flexShrink:0,
+                      background: c.isEligible ? 'var(--green)' : 'var(--border2)',
+                      position:'relative', transition:'background 0.2s',
+                    }}>
+                      <div style={{
+                        position:'absolute', top:3, width:14, height:14, borderRadius:'50%',
+                        background:'var(--white)', transition:'left 0.2s',
+                        left: c.isEligible ? 19 : 3,
+                      }} />
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+
+          {filteredCountries.length === 0 && countries.length > 0 && (
+            <div style={{ color:'var(--gray3)', fontFamily:'var(--font-display)', fontSize:13, padding:'16px 0' }}>No countries match your search.</div>
+          )}
         </Section>
 
         {/* Danger zone */}
