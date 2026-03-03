@@ -50,7 +50,7 @@ export default function DashboardPage() {
       if (me.user) setTrader(me.user.trader || me.user)
       if (acc.account) setAccount(acc.account)
       if (tr.trades) setTrades(tr.trades.slice(0,5))
-      if (lb.entries) setLeaderboard(lb.entries.slice(0,5))
+      if (lb.leaderboard) setLeaderboard(lb.leaderboard.slice(0,5))
       if (notifR.notifications) setNotifs(notifR.notifications.filter((n:any)=>!n.isRead).slice(0,4))
       if (cfg.config) setConfig(cfg.config)
       setLoading(false)
