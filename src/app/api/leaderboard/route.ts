@@ -23,6 +23,7 @@ export async function GET(req: NextRequest) {
 
     // ── 1. Try qualifier entries (filled by trading platform sync) ────────────
     if (phase === 'QUALIFIER') {
+      try {
       const entryWhere: any = {}
       if (country) {
         const cr = await db.country.findUnique({ where: { code: country } })
@@ -96,6 +97,12 @@ export async function GET(req: NextRequest) {
           phase, source: 'qualifier_entries',
           timestamp: new Date().toISOString(),
         })
+      }
+    }
+
+      } catch (qualifierErr) {
+        // QualifierEntry table may not exist yet — fall through to trader fallback
+        console.warn('QualifierEntry query failed, falling back to traders:', qualifierErr)
       }
     }
 
