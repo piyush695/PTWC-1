@@ -99,7 +99,7 @@ export default function DashboardPage() {
           {t.country && (
             <div style={{ display:'flex', alignItems:'center', gap:8, marginTop:10 }}>
               {t.country?.code && <img src={flagUrl(t.country.code)} alt="" style={{ width:24, height:16, objectFit:'cover', borderRadius:2 }} />}
-              <span style={{ fontSize:13, color:'var(--gray3)' }}>{t.country?.name || t.country}</span>
+              <span style={{ fontSize:13, color:'var(--gray3)' }}>{t.country?.name || t.country?.code || ''}</span>
               {rank && <span style={{ fontFamily:'var(--font-display)', fontWeight:700, fontSize:11, color:'var(--gold)', background:'rgba(240,192,64,0.1)', border:'1px solid rgba(240,192,64,0.2)', borderRadius:4, padding:'2px 8px' }}>#{rank} Qualifier</span>}
             </div>
           )}
