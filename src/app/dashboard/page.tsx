@@ -47,7 +47,7 @@ export default function DashboardPage() {
       fetch('/api/notifications').then(r=>r.json()),
       fetch('/api/config').then(r=>r.json()),
     ]).then(([me, acc, tr, lb, notifR, cfg]) => {
-      if (me.user) setTrader(me.user.trader || me.user)
+      if (me.user) { const raw = me.user.trader || me.user; setTrader({...raw, country: raw.country?.name || (typeof raw.country === 'string' ? raw.country : '') || '', countryCode: raw.country?.code || raw.countryCode || ''}) }
       if (acc.account) setAccount(acc.account)
       if (tr.trades) setTrades(tr.trades.slice(0,5))
       if (lb.leaderboard) setLeaderboard(lb.leaderboard.slice(0,5))
