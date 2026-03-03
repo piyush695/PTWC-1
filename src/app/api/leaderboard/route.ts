@@ -14,11 +14,21 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url)
     const phase   = searchParams.get('phase') || 'QUALIFIER'
     const country = searchParams.get('country')
-    const page    = parseInt(searchParams.get('page')  || '1')
+    const page    = parseInt(searchParams.get('page') || '1')
     const limit   = Math.min(parseInt(searchParams.get('limit') || '100'), 500)
     const skip    = (page - 1) * limit
 
-    // 1. Try qualifier entries (only if trading has started)
+    // Shared account select — only fields that actually exist in TradingAccount schema
+    const accountSelect = {
+      currentBalance: true,
+      openingBalance: true,
+      totalTrades:    true,
+      winningTrades:  true,
+      maxDrawdown:    true,
+      lastSyncAt:     true,
+    }
+
+    // 1. Try qualifier entries (only once trading has started)
     if (phase === 'QUALIFIER') {
       try {
         const entryWhere: any = {}
@@ -37,11 +47,7 @@ export async function GET(req: NextRequest) {
                   select: {
                     id: true, displayName: true, status: true,
                     country: { select: { code: true, name: true } },
-                    accounts: {
-                      where: { phase: 'QUALIFIER', status: 'ACTIVE' },
-                      select: { currentBalance: true, openingBalance: true, totalTrades: true, winningTrades: true, maxDrawdown: true, dailyDrawdown: true, lastSyncAt: true },
-                      take: 1,
-                    },
+                    accounts: { orderBy: { createdAt: 'desc' }, select: accountSelect, take: 1 },
                   },
                 },
               },
@@ -54,29 +60,33 @@ export async function GET(req: NextRequest) {
             const opening = acct ? parseFloat(acct.openingBalance.toString()) : 10000
             const balance = acct ? parseFloat(acct.currentBalance.toString()) : opening
             return {
-              rank: skip + idx + 1, traderId: entry.traderId,
-              displayName: entry.trader.displayName,
-              countryCode: code, countryName: entry.trader.country?.name ?? '',
-              flagImageUrl: flagImageUrl(code),
-              returnPct: parseFloat(entry.returnPct.toString()),
-              pnlUsd: balance - opening,
-              maxDrawdown: parseFloat(entry.maxDrawdown.toString()),
-              dailyDrawdown: acct?.dailyDrawdown ? parseFloat(acct.dailyDrawdown.toString()) : 0,
-              totalTrades: entry.totalTrades,
-              winRate: acct && acct.totalTrades > 0 ? Math.round((acct.winningTrades / acct.totalTrades) * 100) : 0,
-              sharpeRatio: entry.sharpeRatio ? parseFloat(entry.sharpeRatio.toString()) : null,
-              qualified: entry.qualified, currentBalance: balance, openingBalance: opening,
-              lastUpdated: acct?.lastSyncAt ?? null, status: entry.trader.status,
+              rank:           skip + idx + 1,
+              traderId:       entry.traderId,
+              displayName:    entry.trader.displayName,
+              countryCode:    code,
+              countryName:    entry.trader.country?.name ?? '',
+              flagImageUrl:   flagImageUrl(code),
+              returnPct:      parseFloat(entry.returnPct.toString()),
+              pnlUsd:         parseFloat((balance - opening).toFixed(2)),
+              maxDrawdown:    parseFloat(entry.maxDrawdown.toString()),
+              totalTrades:    entry.totalTrades,
+              winRate:        acct && acct.totalTrades > 0 ? Math.round((acct.winningTrades / acct.totalTrades) * 100) : 0,
+              sharpeRatio:    entry.sharpeRatio ? parseFloat(entry.sharpeRatio.toString()) : null,
+              qualified:      entry.qualified,
+              currentBalance: balance,
+              openingBalance: opening,
+              lastUpdated:    acct?.lastSyncAt ?? null,
+              status:         entry.trader.status,
             }
           })
           return NextResponse.json({ leaderboard, pagination: { page, limit, total, pages: Math.ceil(total / limit) }, phase, source: 'qualifier_entries', timestamp: new Date().toISOString() })
         }
       } catch (_e) {
-        // QualifierEntry table not ready yet - fall through to trader list
+        // QualifierEntry not ready — fall through
       }
     }
 
-    // 2. Fallback: show registered traders
+    // 2. Fallback: all registered traders
     const traderWhere: any = { status: { in: ['ACTIVE', 'KYC_APPROVED', 'REGISTERED', 'KYC_PENDING'] } }
     if (country) {
       const cr = await db.country.findUnique({ where: { code: country } })
@@ -89,11 +99,7 @@ export async function GET(req: NextRequest) {
         select: {
           id: true, displayName: true, status: true,
           country: { select: { code: true, name: true } },
-          accounts: {
-            orderBy: { createdAt: 'desc' },
-            select: { currentBalance: true, openingBalance: true, totalTrades: true, winningTrades: true, maxDrawdown: true, dailyDrawdown: true, lastSyncAt: true },
-            take: 1,
-          },
+          accounts: { orderBy: { createdAt: 'desc' }, select: accountSelect, take: 1 },
         },
       }),
       db.trader.count({ where: traderWhere }),
@@ -105,21 +111,27 @@ export async function GET(req: NextRequest) {
       const balance = acct ? parseFloat(acct.currentBalance.toString()) : opening
       const retPct  = opening > 0 ? ((balance - opening) / opening) * 100 : 0
       return {
-        rank: skip + idx + 1, traderId: trader.id, displayName: trader.displayName,
-        countryCode: code, countryName: trader.country?.name ?? '',
-        flagImageUrl: flagImageUrl(code),
-        returnPct: parseFloat(retPct.toFixed(4)), pnlUsd: parseFloat((balance - opening).toFixed(2)),
-        maxDrawdown: acct?.maxDrawdown ? parseFloat(acct.maxDrawdown.toString()) : 0,
-        dailyDrawdown: acct?.dailyDrawdown ? parseFloat(acct.dailyDrawdown.toString()) : 0,
-        totalTrades: acct?.totalTrades ?? 0,
-        winRate: acct && acct.totalTrades > 0 ? Math.round((acct.winningTrades / acct.totalTrades) * 100) : 0,
-        qualified: false, currentBalance: balance, openingBalance: opening,
-        lastUpdated: acct?.lastSyncAt ?? null, status: trader.status,
+        rank:           skip + idx + 1,
+        traderId:       trader.id,
+        displayName:    trader.displayName,
+        countryCode:    code,
+        countryName:    trader.country?.name ?? '',
+        flagImageUrl:   flagImageUrl(code),
+        returnPct:      parseFloat(retPct.toFixed(4)),
+        pnlUsd:         parseFloat((balance - opening).toFixed(2)),
+        maxDrawdown:    acct?.maxDrawdown ? parseFloat(acct.maxDrawdown.toString()) : 0,
+        totalTrades:    acct?.totalTrades ?? 0,
+        winRate:        acct && acct.totalTrades > 0 ? Math.round((acct.winningTrades / acct.totalTrades) * 100) : 0,
+        qualified:      false,
+        currentBalance: balance,
+        openingBalance: opening,
+        lastUpdated:    acct?.lastSyncAt ?? null,
+        status:         trader.status,
       }
     })
     return NextResponse.json({ leaderboard, pagination: { page, limit, total, pages: Math.ceil(total / limit) }, phase, source: 'registered_traders', timestamp: new Date().toISOString() })
   } catch (error) {
-    console.error('Leaderboard API error:', error)
+    console.error('Leaderboard error:', error)
     return NextResponse.json({ error: 'Internal error' }, { status: 500 })
   }
 }
