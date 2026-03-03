@@ -24,7 +24,7 @@ export default function DashboardLayout({
   trader,
 }: {
   children: React.ReactNode
-  trader: {
+  trader?: {
     displayName: string
     country: string
     countryCode: string
@@ -32,7 +32,7 @@ export default function DashboardLayout({
     kycStatus: string
     rank: number | null
     returnPct: number
-  }
+  } | null
 }) {
   const path = usePathname()
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -82,14 +82,14 @@ export default function DashboardLayout({
                 {(trader?.displayName || '?').charAt(0).toUpperCase()}
               </div>
               <div style={{ position: 'absolute', bottom: -2, right: -2, width: 18, height: 13, borderRadius: 2, overflow: 'hidden', border: '1px solid rgba(0,0,0,0.3)' }}>
-                <img src={flagUrl(trader.countryCode)} alt={trader.country} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                <img src={flagUrl(trader?.countryCode||"")} alt={trader?.country||""} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
               </div>
             </div>
             <div style={{ minWidth: 0 }}>
               <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 14, color: 'var(--white)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                {trader.displayName}
+                {trader?.displayName||""}
               </div>
-              <div style={{ fontSize: 11, color: 'var(--gray3)', marginTop: 1 }}>{trader.country}</div>
+              <div style={{ fontSize: 11, color: 'var(--gray3)', marginTop: 1 }}>{trader?.country||""}</div>
             </div>
           </div>
           {/* Status + rank row */}
@@ -98,13 +98,13 @@ export default function DashboardLayout({
               fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 9,
               letterSpacing: '0.12em', textTransform: 'uppercase',
               padding: '3px 8px', borderRadius: 4,
-              color: statusColor[trader.status] || 'var(--gray2)',
-              background: `${(statusColor[trader.status] || '#888')}15`,
-              border: `1px solid ${(statusColor[trader.status] || '#888')}30`,
-            }}>{statusLabel[trader.status] || trader.status}</span>
-            {trader.rank && (
+              color: statusColor[trader?.status||""] || 'var(--gray2)',
+              background: `${(statusColor[trader?.status||""] || '#888')}15`,
+              border: `1px solid ${(statusColor[trader?.status||""] || '#888')}30`,
+            }}>{statusLabel[trader?.status||""] || trader?.status || "Active"}</span>
+            {trader?.rank && (
               <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 10, color: 'var(--gold)', marginLeft: 'auto' }}>
-                #{trader.rank} RANKED
+                #{trader?.rank} RANKED
               </span>
             )}
           </div>
@@ -149,13 +149,13 @@ export default function DashboardLayout({
             <span style={{ fontSize: 13 }}>↗</span>
             <span style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 12, letterSpacing: '0.08em' }}>PUBLIC LEADERBOARD</span>
           </Link>
-          <Link href="/api/auth/signout" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 20px', textDecoration: 'none', color: 'var(--gray3)', transition: 'color 0.15s' }}
+          <a href="/api/auth/signout" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 20px', textDecoration: 'none', color: 'var(--gray3)', transition: 'color 0.15s' }}
             onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = 'var(--red)'}
             onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = 'var(--gray3)'}
           >
             <span style={{ fontSize: 13 }}>⏻</span>
             <span style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 12, letterSpacing: '0.08em' }}>SIGN OUT</span>
-          </Link>
+          </a>
         </div>
       </aside>
 
